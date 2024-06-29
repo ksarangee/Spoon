@@ -8,14 +8,51 @@
     android:fitsSystemWindows="false"
     tools:context=".HomeFragment">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/buttonAddContact"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+    <!-- 검색창과 RecyclerView를 포함한 LinearLayout -->
+    <LinearLayout
+        android:id="@+id/searchLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintTop_toBottomOf="@id/switchSync"
+        android:padding="8dp">
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searchCont"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:iconifiedByDefault="false"
+            app:queryHint="Search Contacts" />
+
+        <!-- RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FFFFFF"
+            app:layoutManager="LinearLayoutManager"
+            android:visibility="gone" /> <!-- 초기에는 숨김 처리 -->
+
+        <!-- 기존 RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FFFFFF"
+            app:layoutManager="LinearLayoutManager"
+            android:visibility="visible"/>
+
+        <!-- 검색 결과 없을 때 보여줄 메시지 -->
+        <TextView
+            android:id="@+id/noAddressData"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No Contacts Data"
+            android:textSize="30sp"
+            android:layout_gravity="center"
+            android:visibility="gone" /> <!-- 초기에는 숨김 처리 -->
+
+    </LinearLayout>
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/switchSync"
@@ -50,5 +87,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginBottom="70dp" />
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

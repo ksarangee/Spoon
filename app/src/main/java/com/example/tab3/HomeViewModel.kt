@@ -1,7 +1,6 @@
-package com.example.tab3.ui.home
+package com.example.tab3
 
 import android.app.Application
-import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -60,7 +59,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val contactExists = updatedContacts.any { it.name == contact.name && it.number == contact.number }
         if (!contactExists) {
             updatedContacts.add(contact)
-            _contacts.value = updatedContacts
+            _contacts.value = updatedContacts.sortedBy { it.name }
             saveContacts()
         }
     }
@@ -69,7 +68,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val index = updatedContacts.indexOfFirst { it.profile == contact.profile }
         if (index != -1) {
             updatedContacts[index] = contact
-            _contacts.value = updatedContacts
+            _contacts.value = updatedContacts.sortedBy { it.name }
             saveContacts()
         }
     }

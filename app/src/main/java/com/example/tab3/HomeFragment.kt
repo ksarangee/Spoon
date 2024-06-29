@@ -13,14 +13,13 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.tab3.databinding.FragmentHomeBinding
-import com.example.tab3.ui.home.HomeViewModel
-import com.example.tab3.ui.home.MyItem
 import android.util.Log
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
-import androidx.appcompat.widget.SwitchCompat
 import android.provider.ContactsContract
+//import android.widget.SearchView
+import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
 
 class HomeFragment : Fragment() {
@@ -31,8 +30,14 @@ class HomeFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         // 프래그먼트가 화면에 다시 나타날 때마다 권한 요청을 수행
-        if (binding.switchSync.isChecked) {
-            requestPermissions()
+        binding.switchSync.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                // Synchronize contacts
+                requestPermissions()
+            } else {
+                // Clear synchronized contacts if needed
+                homeViewModel.deleteAllContacts()
+            }
         }
     }
     override fun onCreateView(
@@ -46,6 +51,7 @@ class HomeFragment : Fragment() {
 
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
+
         // Initialize RecyclerView
         val switchSync = binding.switchSync
         switchSync.setOnCheckedChangeListener { _, isChecked ->
@@ -58,28 +64,26 @@ class HomeFragment : Fragment() {
             }
         }
 
-
-
         adapter = MyAdapter(mutableListOf())
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        binding.recyclerView.adapter = adapter
-        //homeViewModel.deleteAllContacts()
+        binding.recyclerV.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerV.adapter = adapter
+
         // Observe contacts LiveData
         homeViewModel.contacts.observe(viewLifecycleOwner) { contacts ->
             val sortedContacts = contacts.sortedWith(compareByDescending<MyItem> { it.isFavorite }.thenBy { it.name })
             adapter.items.clear()
             adapter.items.addAll(sortedContacts)
             adapter.notifyDataSetChanged()
-        }
-        /*
-        homeViewModel.contacts.observe(viewLifecycleOwner) { contacts ->
-            val dataList = contacts.toMutableList()
-            adapter.items.clear()
-            adapter.items.addAll(dataList)
-            adapter.notifyDataSetChanged()
-        }
 
-         */
+            // Update visibility of RecyclerViews
+            if (binding.searchCont.query.isNullOrEmpty()) {
+                binding.recyclerView.visibility = View.VISIBLE
+                binding.recyclerV.visibility = View.GONE
+            } else {
+                binding.recyclerView.visibility = View.GONE
+                binding.recyclerV.visibility = View.VISIBLE
+            }
+        }
 
         val decoration = MyAdapter.AddressAdapterDecoration()
         binding.recyclerView.addItemDecoration(decoration)
@@ -95,30 +99,59 @@ class HomeFragment : Fragment() {
 
         adapter.favoriteClick = object : MyAdapter.FavoriteClick {
             override fun onFavoriteClick(view: View, position: Int) {
-                val item = adapter.items[position]
+                val item = adapter.filteredItems[position]
                 item.isFavorite = !item.isFavorite
                 homeViewModel.updateContact(item)
+                adapter.notifyItemChanged(position)
             }
         }
         adapter.deleteClick = object : MyAdapter.DeleteClick {
             override fun onDeleteClick(view: View, position: Int) {
                 Log.d("MyTag", "This is a debug message")
-                val item = adapter.items[position]
+                val item = adapter.filteredItems[position]
                 homeViewModel.deleteContact(item.profile)
+                adapter.filteredItems.removeAt(position)
+                adapter.notifyItemRemoved(position)
             }
         }
+
+        binding.searchCont.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                return false
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                if (newText.isNullOrEmpty()) {
+                    // 검색어가 비어있을 때
+                    binding.recyclerV.visibility = View.GONE
+                    binding.recyclerView.visibility = View.VISIBLE
+                } else {
+                    // 검색어가 입력됐을 때
+                    binding.recyclerV.visibility = View.VISIBLE
+                    binding.recyclerView.visibility = View.GONE
+                    (binding.recyclerV.adapter as? MyAdapter)?.filter?.filter(newText)
+                }
+                return true
+            }
+        })
+
+        binding.searchCont.setOnQueryTextFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                // 포커스가 없어졌을 때
+                if (binding.searchCont.query.isNullOrEmpty()) {
+                    binding.recyclerV.visibility = View.GONE
+                    binding.recyclerView.visibility = View.VISIBLE
+                }
+            } else {
+                // 포커스가 있을 때
+                binding.recyclerV.visibility = View.VISIBLE
+                binding.recyclerView.visibility = View.GONE
+            }
+        }
+
         binding.buttonAddContact.setOnClickListener {
             showAddContactDialog()
         }
-
-/*
-        binding.buttonAddContact.setOnClickListener {
-            val newContact = MyItem(profile = (adapter.items.size + 1), name = "New Contact", number = "1234567890", isFavorite = false)
-            homeViewModel.addContact(newContact)
-            Toast.makeText(requireContext(), "Contact added", Toast.LENGTH_SHORT).show()
-        }
-
- */
 
         return root
     }
@@ -213,6 +246,7 @@ class HomeFragment : Fragment() {
                 homeViewModel.addMaxId()
             }
         }
+
         addContacts(contactsList)
         //showConsentDialog(contactsList)
     }
@@ -234,6 +268,10 @@ class HomeFragment : Fragment() {
         for (contact in contactsList) {
             homeViewModel.addContact(contact)
         }
+        // Update adapter
+        adapter.items.clear()
+        adapter.items.addAll(homeViewModel.contacts.value ?: emptyList())
+        adapter.notifyDataSetChanged()
     }
 
     companion object {

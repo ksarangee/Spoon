@@ -10,11 +10,14 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import android.widget.Filter
+import android.widget.Filterable
 
 import com.example.tab3.databinding.ItemRvBinding
-import com.example.tab3.ui.home.MyItem
 
-class MyAdapter(val items: MutableList<MyItem>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class MyAdapter(val items: MutableList<MyItem>) : RecyclerView.Adapter<RecyclerView.ViewHolder>(), Filterable {
+    var filteredItems: MutableList<MyItem> = items.toMutableList()
+
     companion object {
         private const val VIEW_TYPE_DEFAULT = 0
         private const val VIEW_TYPE_ANOTHER = 1
@@ -51,8 +54,33 @@ class MyAdapter(val items: MutableList<MyItem>) : RecyclerView.Adapter<RecyclerV
         }
     }
 
+    override fun getFilter(): Filter {
+        return object : Filter() {
+            override fun performFiltering(constraint: CharSequence?): FilterResults {
+                val charString = constraint?.toString() ?: ""
+                filteredItems = if (charString.isEmpty()) {
+                    items.toMutableList()
+                } else {
+                    val filteredList = items.filter {
+                        it.name.contains(charString, ignoreCase = true) ||
+                                it.number.contains(charString, ignoreCase = true)
+                    }
+                    filteredList.toMutableList()
+                }
+                val filterResults = FilterResults()
+                filterResults.values = filteredItems
+                return filterResults
+            }
+
+            override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+                filteredItems = results?.values as MutableList<MyItem>
+                notifyDataSetChanged()
+            }
+        }
+    }
+
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        val item = items[position]
+        val item = filteredItems[position]
         when (holder) {
             is DefaultViewHolder -> holder.bindDefault(item)
             is AnotherViewHolder -> holder.bindAnother(item)
@@ -69,7 +97,7 @@ class MyAdapter(val items: MutableList<MyItem>) : RecyclerView.Adapter<RecyclerV
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (items[position].isFavorite) {
+        return if (filteredItems[position].isFavorite) {
             VIEW_TYPE_DEFAULT
         } else {
             VIEW_TYPE_ANOTHER
@@ -77,7 +105,7 @@ class MyAdapter(val items: MutableList<MyItem>) : RecyclerView.Adapter<RecyclerV
     }
 
     override fun getItemCount(): Int {
-        return items.size
+        return filteredItems.size
     }
 
     inner class DefaultViewHolder(private val binding: ItemRvBinding) : RecyclerView.ViewHolder(binding.root) {
