@@ -6,7 +6,7 @@ Spoon은 대전에서 맛있는 걸 먹고 기록하고 싶은 몰입캠프 참�
 
 
 
-### 개발환경
+### Stack
 
 - Android Studio (Kotlin)
 
